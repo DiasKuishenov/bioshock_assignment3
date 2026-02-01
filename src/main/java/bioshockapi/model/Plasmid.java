@@ -2,9 +2,9 @@ package bioshockapi.model;
 
 import bioshockapi.exception.InvalidInputException;
 import bioshockapi.interfaces.PricedItem;
-import bioshockapi.interfaces.Validatable;
 
-public class Plasmid extends BaseEntity implements Validatable, PricedItem {
+public class Plasmid extends BaseEntity implements PricedItem {
+
     private int price;
     private Effect effect;
 
@@ -16,7 +16,7 @@ public class Plasmid extends BaseEntity implements Validatable, PricedItem {
 
     @Override
     public void validate() throws InvalidInputException {
-        if (getName() == null || getName().trim().isEmpty()) {
+        if (name == null || name.trim().isEmpty()) {
             throw new InvalidInputException("Plasmid name must not be empty.");
         }
         if (price < 0) {
@@ -41,23 +41,10 @@ public class Plasmid extends BaseEntity implements Validatable, PricedItem {
         return effect;
     }
 
-    public void setPrice(int price) throws InvalidInputException {
-        if (price < 0) {
-            throw new InvalidInputException("Price must be >= 0.");
-        }
-        this.price = price;
-    }
-
-    public void setEffect(Effect effect) throws InvalidInputException {
-        if (effect == null) {
-            throw new InvalidInputException("Effect must exist.");
-        }
-        this.effect = effect;
-    }
-
     @Override
     public String printInfo() {
-        String e = (effect == null) ? "No effect" : effect.getName();
-        return super.printInfo() + " | price=" + price + " | effect=" + e;
+        return baseInfo()
+                + " | price=" + price
+                + " | effect=" + effect.getName();
     }
 }

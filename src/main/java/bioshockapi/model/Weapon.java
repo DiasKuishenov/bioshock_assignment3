@@ -2,9 +2,9 @@ package bioshockapi.model;
 
 import bioshockapi.exception.InvalidInputException;
 import bioshockapi.interfaces.PricedItem;
-import bioshockapi.interfaces.Validatable;
 
-public class Weapon extends BaseEntity implements Validatable, PricedItem {
+public class Weapon extends BaseEntity implements PricedItem {
+
     private int price;
     private int damage;
     private AmmoType ammoType;
@@ -18,7 +18,7 @@ public class Weapon extends BaseEntity implements Validatable, PricedItem {
 
     @Override
     public void validate() throws InvalidInputException {
-        if (getName() == null || getName().trim().isEmpty()) {
+        if (name == null || name.trim().isEmpty()) {
             throw new InvalidInputException("Weapon name must not be empty.");
         }
         if (price < 0) {
@@ -47,27 +47,14 @@ public class Weapon extends BaseEntity implements Validatable, PricedItem {
         return ammoType;
     }
 
-    public void setPrice(int price) throws InvalidInputException {
-        if (price < 0) {
-            throw new InvalidInputException("Price must be >= 0.");
-        }
-        this.price = price;
-    }
-
-    public void setDamage(int damage) throws InvalidInputException {
-        if (damage < 0) {
-            throw new InvalidInputException("Damage must be >= 0.");
-        }
-        this.damage = damage;
-    }
-
-    public void setAmmoType(AmmoType ammoType) {
-        this.ammoType = ammoType;
-    }
-
     @Override
     public String printInfo() {
-        String ammo = (ammoType == null) ? "No ammo" : ammoType.getName() + " (" + ammoType.getCapacity() + ")";
-        return super.printInfo() + " | price=" + price + " | dmg=" + damage + " | ammo=" + ammo;
+        String ammo = (ammoType == null)
+                ? "No ammo"
+                : ammoType.getName() + " (" + ammoType.getCapacity() + ")";
+        return baseInfo()
+                + " | price=" + price
+                + " | dmg=" + damage
+                + " | ammo=" + ammo;
     }
 }

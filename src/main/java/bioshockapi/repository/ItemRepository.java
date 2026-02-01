@@ -1,11 +1,7 @@
 package bioshockapi.repository;
 
 import bioshockapi.exception.DatabaseOperationException;
-import bioshockapi.model.AmmoType;
-import bioshockapi.model.BaseEntity;
-import bioshockapi.model.Effect;
-import bioshockapi.model.Plasmid;
-import bioshockapi.model.Weapon;
+import bioshockapi.model.*;
 import bioshockapi.types.ItemType;
 import bioshockapi.utils.DatabaseConnection;
 
@@ -16,10 +12,41 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ItemRepository {
+
     private final DatabaseConnection db;
 
     public ItemRepository(DatabaseConnection db) {
         this.db = db;
+    }
+
+    public boolean existsByName(String name) throws DatabaseOperationException {
+        String sql = "SELECT id FROM items WHERE name = ?";
+
+        try (Connection conn = db.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, name);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (Exception e) {
+            throw new DatabaseOperationException("Failed to check item name.", e);
+        }
+    }
+
+    public boolean existsById(int id) throws DatabaseOperationException {
+        String sql = "SELECT id FROM items WHERE id = ?";
+
+        try (Connection conn = db.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (Exception e) {
+            throw new DatabaseOperationException("Failed to check item id.", e);
+        }
     }
 
     public int createWeapon(Weapon w) throws DatabaseOperationException {
@@ -42,10 +69,9 @@ public class ItemRepository {
             }
 
             ps.executeUpdate();
-
             return findIdByName(w.getName());
         } catch (Exception e) {
-            throw new DatabaseOperationException("Failed to create weapon item.", e);
+            throw new DatabaseOperationException("Failed to create weapon.", e);
         }
     }
 
@@ -62,10 +88,9 @@ public class ItemRepository {
             ps.setString(5, p.getEffect().getDescription());
 
             ps.executeUpdate();
-
             return findIdByName(p.getName());
         } catch (Exception e) {
-            throw new DatabaseOperationException("Failed to create plasmid item.", e);
+            throw new DatabaseOperationException("Failed to create plasmid.", e);
         }
     }
 
@@ -78,9 +103,8 @@ public class ItemRepository {
              ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
-                list.add(mapRowToEntity(rs));
+                list.add(mapRow(rs));
             }
-
             return list;
         } catch (Exception e) {
             throw new DatabaseOperationException("Failed to read items.", e);
@@ -94,57 +118,24 @@ public class ItemRepository {
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, id);
-
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return mapRowToEntity(rs);
+                    return mapRow(rs);
                 }
                 return null;
             }
         } catch (Exception e) {
-            throw new DatabaseOperationException("Failed to read item by id.", e);
+            throw new DatabaseOperationException("Failed to get item.", e);
         }
     }
 
-    public boolean existsById(int id) throws DatabaseOperationException {
-        String sql = "SELECT id FROM items WHERE id = ?";
-
-        try (Connection conn = db.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setInt(1, id);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
-            }
-        } catch (Exception e) {
-            throw new DatabaseOperationException("Failed to check item.", e);
-        }
-    }
-
-    public boolean existsByName(String name) throws DatabaseOperationException {
-        String sql = "SELECT id FROM items WHERE name = ?";
-
-        try (Connection conn = db.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, name);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
-            }
-        } catch (Exception e) {
-            throw new DatabaseOperationException("Failed to check item by name.", e);
-        }
-    }
-
-    public void updatePrice(int id, int newPrice) throws DatabaseOperationException {
+    public void updatePrice(int id, int price) throws DatabaseOperationException {
         String sql = "UPDATE items SET price = ? WHERE id = ?";
 
         try (Connection conn = db.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setInt(1, newPrice);
+            ps.setInt(1, price);
             ps.setInt(2, id);
             ps.executeUpdate();
         } catch (Exception e) {
@@ -172,40 +163,37 @@ public class ItemRepository {
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, name);
-
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return rs.getInt("id");
                 }
             }
         }
-
         return -1;
     }
 
-    private BaseEntity mapRowToEntity(ResultSet rs) throws Exception {
+    private BaseEntity mapRow(ResultSet rs) throws Exception {
         int id = rs.getInt("id");
         String name = rs.getString("name");
         String type = rs.getString("item_type");
         int price = rs.getInt("price");
 
         if (ItemType.WEAPON.name().equals(type)) {
-            int damage = rs.getInt("damage");
+            int dmg = rs.getInt("damage");
             String ammoName = rs.getString("ammo_name");
-            Integer ammoCap = (Integer) rs.getObject("ammo_capacity");
+            Integer cap = (Integer) rs.getObject("ammo_capacity");
 
-            AmmoType ammoType = null;
-            if (ammoName != null && ammoCap != null) {
-                ammoType = new AmmoType(ammoName, ammoCap);
-            }
+            AmmoType ammo = (ammoName == null || cap == null)
+                    ? null
+                    : new AmmoType(ammoName, cap);
 
-            return new Weapon(id, name, price, damage, ammoType);
+            return new Weapon(id, name, price, dmg, ammo);
         }
 
-        String effName = rs.getString("effect_name");
-        String effDesc = rs.getString("effect_description");
-
-        Effect effect = new Effect(effName == null ? "Unknown" : effName, effDesc == null ? "" : effDesc);
+        Effect effect = new Effect(
+                rs.getString("effect_name"),
+                rs.getString("effect_description")
+        );
         return new Plasmid(id, name, price, effect);
     }
 }

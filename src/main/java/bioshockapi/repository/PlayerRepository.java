@@ -1,6 +1,7 @@
 package bioshockapi.repository;
 
 import bioshockapi.exception.DatabaseOperationException;
+import bioshockapi.model.Player;
 import bioshockapi.utils.DatabaseConnection;
 
 import java.sql.Connection;
@@ -10,52 +11,25 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PlayerRepository {
+
     private final DatabaseConnection db;
 
     public PlayerRepository(DatabaseConnection db) {
         this.db = db;
     }
 
-    public int create(String name, int money) throws DatabaseOperationException {
-        String sql = "INSERT INTO players (name, money) VALUES (?, ?)";
+    public boolean existsByName(String name) throws DatabaseOperationException {
+        String sql = "SELECT id FROM players WHERE name = ?";
 
         try (Connection conn = db.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, name);
-            ps.setInt(2, money);
-            ps.executeUpdate();
-
-            String idSql = "SELECT id FROM players WHERE name = ?";
-            try (PreparedStatement ps2 = conn.prepareStatement(idSql)) {
-                ps2.setString(1, name);
-                try (ResultSet rs = ps2.executeQuery()) {
-                    if (rs.next()) {
-                        return rs.getInt("id");
-                    }
-                }
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
             }
-
-            return -1;
         } catch (Exception e) {
-            throw new DatabaseOperationException("Failed to create player.", e);
-        }
-    }
-
-    public List<String> getAllSimple() throws DatabaseOperationException {
-        String sql = "SELECT id, name, money FROM players ORDER BY id";
-        List<String> list = new ArrayList<>();
-
-        try (Connection conn = db.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-
-            while (rs.next()) {
-                list.add(rs.getInt("id") + " | " + rs.getString("name") + " | money=" + rs.getInt("money"));
-            }
-            return list;
-        } catch (Exception e) {
-            throw new DatabaseOperationException("Failed to read players.", e);
+            throw new DatabaseOperationException("Failed to check player name.", e);
         }
     }
 
@@ -70,22 +44,43 @@ public class PlayerRepository {
                 return rs.next();
             }
         } catch (Exception e) {
-            throw new DatabaseOperationException("Failed to check player.", e);
+            throw new DatabaseOperationException("Failed to check player id.", e);
         }
     }
 
-    public boolean existsByName(String name) throws DatabaseOperationException {
-        String sql = "SELECT id FROM players WHERE name = ?";
+    public int create(String name, int money) throws DatabaseOperationException {
+        String sql = "INSERT INTO players (name, money) VALUES (?, ?)";
 
         try (Connection conn = db.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, name);
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
-            }
+            ps.setInt(2, money);
+            ps.executeUpdate();
+            return getIdByName(name);
         } catch (Exception e) {
-            throw new DatabaseOperationException("Failed to check player by name.", e);
+            throw new DatabaseOperationException("Failed to create player.", e);
+        }
+    }
+
+    public List<String> getAllSimple() throws DatabaseOperationException {
+        String sql = "SELECT id, name, money FROM players ORDER BY id";
+        List<String> list = new ArrayList<>();
+
+        try (Connection conn = db.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                list.add(
+                        rs.getInt("id") + " | " +
+                                rs.getString("name") + " | money=" +
+                                rs.getInt("money")
+                );
+            }
+            return list;
+        } catch (Exception e) {
+            throw new DatabaseOperationException("Failed to list players.", e);
         }
     }
 
@@ -114,5 +109,21 @@ public class PlayerRepository {
         } catch (Exception e) {
             throw new DatabaseOperationException("Failed to delete player.", e);
         }
+    }
+
+    private int getIdByName(String name) throws Exception {
+        String sql = "SELECT id FROM players WHERE name = ?";
+
+        try (Connection conn = db.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, name);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("id");
+                }
+            }
+        }
+        return -1;
     }
 }

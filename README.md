@@ -10,6 +10,7 @@ It works like a simple inventory system where we can manage items (weapons / pla
 - JDBC (PreparedStatement)
 - IntelliJ IDEA
 - Maven (sqlite-jdbc)
+- CLI (console menu)
 
 ## Database
 Database file is created automatically:

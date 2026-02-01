@@ -11,15 +11,20 @@ import bioshockapi.repository.ItemRepository;
 import java.util.List;
 
 public class ItemService {
+
     private final ItemRepository repo;
 
     public ItemService(ItemRepository repo) {
         this.repo = repo;
     }
 
+    public List<BaseEntity> listItems() throws Exception {
+        return repo.getAllAsEntities();
+    }
+
     public int createWeapon(Weapon w) throws Exception {
         if (repo.existsByName(w.getName())) {
-            throw new DuplicateResourceException("Item with this name already exists.");
+            throw new DuplicateResourceException("Item already exists.");
         }
         w.validate();
         return repo.createWeapon(w);
@@ -27,32 +32,20 @@ public class ItemService {
 
     public int createPlasmid(Plasmid p) throws Exception {
         if (repo.existsByName(p.getName())) {
-            throw new DuplicateResourceException("Item with this name already exists.");
+            throw new DuplicateResourceException("Item already exists.");
         }
         p.validate();
         return repo.createPlasmid(p);
     }
 
-    public List<BaseEntity> listItems() throws Exception {
-        return repo.getAllAsEntities();
-    }
-
-    public BaseEntity getItem(int id) throws Exception {
-        BaseEntity e = repo.getById(id);
-        if (e == null) {
-            throw new ResourceNotFoundException("Item not found.");
-        }
-        return e;
-    }
-
-    public void updatePrice(int id, int newPrice) throws Exception {
-        if (newPrice < 0) {
-            throw new InvalidInputException("Price must be >= 0.");
+    public void updatePrice(int id, int price) throws Exception {
+        if (price < 0) {
+            throw new InvalidInputException("Price must be >= 0");
         }
         if (!repo.existsById(id)) {
             throw new ResourceNotFoundException("Item not found.");
         }
-        repo.updatePrice(id, newPrice);
+        repo.updatePrice(id, price);
     }
 
     public void deleteItem(int id) throws Exception {
@@ -61,7 +54,6 @@ public class ItemService {
         }
         repo.delete(id);
     }
-
     public void checkItemExists(int id) throws Exception {
         if (!repo.existsById(id)) {
             throw new ResourceNotFoundException("Item not found.");
